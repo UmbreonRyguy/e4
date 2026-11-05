@@ -211,27 +211,27 @@ export class ShmupBoss extends ShmupPrefabSprite {
 }
 
 export class ShmupPowerUp extends ShmupPrefabSprite {
-	constructor(scene: Phaser.Scene, x: number, y: number, kind) {
-		super(scene, x, y, kind, 0, 0, 14, 0, false, true, x, 1)
-	}
+  constructor(scene: Phaser.Scene, x: number, y: number, kind) {
+    super(scene, x, y, kind, 0, 0, 14, 0, false, true, x, 1);
+  }
 
-	override step(): void {
-		this.age++
-		this.y += 1.1
-		this.rotation += 0.04
-		this.setScale(1 + 0.12 * Math.sin(this.age * 0.15))
-	}
+  override step(): void {
+    this.age++;
+    this.y += 1.1;
+    this.rotation += 0.04;
+    this.setScale(1 + 0.12 * Math.sin(this.age * 0.15));
+  }
 
-	// power-ups can't shoot
-	override fireWeapon(): void {}
+  // power-ups can't shoot
+  override fireWeapon(): void {}
 
-	// power-ups can't be hurt
-	override takeDamage(): boolean {
-		return false
-	}
+  // power-ups can't be hurt
+  override takeDamage(): boolean {
+    return false;
+  }
 
-	// power-ups have no boss phases
-	override phase(): number {
-		return 0
-	}
+  // power-ups have no boss phases
+  override phase(): number {
+    return 0;
+  }
 }
