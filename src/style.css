@@ -185,6 +185,13 @@ output {
   color: var(--muted);
 }
 
+.stop-dot {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
 .stop[data-state="cleared"] {
   color: var(--cyan);
 }
