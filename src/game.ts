@@ -2,12 +2,15 @@ import Phaser from "phaser";
 import {
   type Actor,
   type Arena,
+  Boss,
   Bullet,
+  ENEMIES,
+  Enemy,
   HEIGHT,
   Player,
+  PowerUp,
   WIDTH,
 } from "./actors.ts";
-import { ShmupBoss, ShmupPowerUp, ShmupPrefabSprite } from "./prefab.ts";
 import type { Hud } from "./hud.ts";
 import type { LaunchOptions } from "./main.ts";
 import { AutoPilot, KeyboardPilot, type Pilot } from "./pilots.ts";
@@ -28,10 +31,8 @@ const TICK_MS = 1000 / 60;
 const START_LIVES = 3;
 const BOSS_WARNING_TICKS = 200;
 const VICTORY_TICKS = 180;
-/** Seconds of idling before the title hands the ship to the autopilot. */
 const IDLE_SECONDS = 8;
 
-/** Lines of the closing story and when (seconds) each appears. */
 const STORY: [number, string][] = [
   [0.8, "The Warden's lights go dark, one ring at a time."],
   [4.2, "Behind you, five sectors of open sky."],
@@ -41,10 +42,6 @@ const WARP_AT = 9;
 const CREDITS_AT = 11;
 const RETURN_AT = 18;
 
-/**
- * The whole game. mode is one of "title", "play", "attract" or "cutscene";
- * switching modes fades out and restarts this scene in the new mode.
- */
 export class GameScene extends Phaser.Scene implements Arena {
   mode = "title";
   rng!: Rng;
@@ -53,13 +50,13 @@ export class GameScene extends Phaser.Scene implements Arena {
   private run;
   private pilot!: Pilot;
   private backdrop!: Backdrop;
-  private enemies: ShmupPrefabSprite[] = [];
+  private enemies: Enemy[] = [];
   private shots: Bullet[] = [];
   private bullets: Bullet[] = [];
-  private pickups: ShmupPowerUp[] = [];
+  private pickups: PowerUp[] = [];
   private sector = -1;
   private sectorStart = 0;
-  private boss: ShmupBoss | null = null;
+  private boss: Boss | null = null;
   private bossDueAt = 0;
   private victoryAt = 0;
   private gameOver = false;
@@ -322,7 +319,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   summon(_kind: string, x: number, y: number): void {
     const side = x < WIDTH / 2 ? 1 : -1;
-    this.enemies.push(new ShmupPrefabSprite(this, "drone", { x, y, side }));
+    this.enemies.push(new Enemy(this, ENEMIES.drone, { x, y, side }));
   }
 
   // one tick of gameplay
@@ -406,21 +403,18 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
   }
 
-  /** Creates each enemy of the wave whose appearance tick is t. */
   private spawnWave(wave: Wave, t: number): void {
     for (let i = 0; i < wave.count; i++) {
       const { x, y, delay } = slot(wave.formation, i, wave.count, wave.x);
       if (t !== wave.at + delay) continue;
       const side = i % 2 === 0 ? 1 : -1;
-      this.enemies.push(
-        new ShmupPrefabSprite(this, wave.kind, { x, y, side }),
-      );
+      this.enemies.push(new Enemy(this, ENEMIES[wave.kind], { x, y, side }));
     }
   }
 
   private startBoss(): void {
     this.bossDueAt = 0;
-    this.boss = new ShmupBoss(this);
+    this.boss = new Boss(this);
     this.boss.enableFilters();
     this.boss.filters?.internal.addGlow(TINTS.boss, 4, 0, 1);
     this.enemies.push(this.boss);
@@ -458,25 +452,24 @@ export class GameScene extends Phaser.Scene implements Arena {
     }
   }
 
-  private destroyEnemy(enemy: ShmupPrefabSprite): void {
+  private destroyEnemy(enemy: Enemy): void {
     enemy.setActive(false);
-    this.run.score += enemy.score;
+    this.run.score += enemy.spec.score;
     this.run.kills++;
     if (enemy === this.boss) {
       this.defeatBoss(this.boss);
       return;
     }
     this.explode(enemy.x, enemy.y, 1);
-    if (this.rng.chance(enemy.dropChance)) {
+    if (this.rng.chance(enemy.spec.dropChance)) {
       const kind = this.player.power < 3 && this.rng.chance(0.5)
         ? "spread"
         : "shield";
-      this.pickups.push(new ShmupPowerUp(this, enemy.x, enemy.y, kind));
+      this.pickups.push(new PowerUp(this, enemy.x, enemy.y, kind));
     }
   }
 
   private hurtPlayer(): void {
-    // After the Warden falls, nothing can hurt the ship during the victory lap.
     if (this.run.bossDefeted || this.gameOver || !this.player.vulnerable) {
       return;
     }
@@ -509,7 +502,7 @@ export class GameScene extends Phaser.Scene implements Arena {
     });
   }
 
-  private defeatBoss(boss: ShmupBoss): void {
+  private defeatBoss(boss: Boss): void {
     this.run.bossDefeated = true;
     this.victoryAt = this.now + VICTORY_TICKS;
     this.hud.setBoss(0);
