@@ -14,7 +14,6 @@ import { AutoPilot, KeyboardPilot, type Pilot } from "./pilots.ts";
 import { Rng } from "./rng.ts";
 import {
   BOSS_NAME,
-  type EnemyKind,
   GRACE_TICKS,
   ROUTE_NAMES,
   SECTORS,
@@ -31,17 +30,6 @@ const BOSS_WARNING_TICKS = 200;
 const VICTORY_TICKS = 180;
 /** Seconds of idling before the title hands the ship to the autopilot. */
 const IDLE_SECONDS = 8;
-
-/** ShmupPrefabSprite arguments that follow the texture, per enemy kind. */
-const ENEMY_ARGS: Record<
-  EnemyKind,
-  readonly [number, number, number, number, boolean, boolean]
-> = {
-  drone: [2, 100, 13, 0.015, true, false],
-  dart: [1, 150, 12, 0.015, false, false],
-  turret: [12, 400, 19, 0.3, true, false],
-  lancer: [4, 250, 15, 0.06, true, false],
-};
 
 /** Lines of the closing story and when (seconds) each appears. */
 const STORY: [number, string][] = [
@@ -333,22 +321,8 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   summon(_kind: string, x: number, y: number): void {
-    this.enemies.push(
-      new ShmupPrefabSprite(
-        this,
-        x,
-        y,
-        "drone",
-        2,
-        100,
-        13,
-        0.015,
-        true,
-        false,
-        x,
-        x < WIDTH / 2 ? 1 : -1,
-      ),
-    );
+    const side = x < WIDTH / 2 ? 1 : -1;
+    this.enemies.push(new ShmupPrefabSprite(this, "drone", { x, y, side }));
   }
 
   // one tick of gameplay
@@ -437,16 +411,9 @@ export class GameScene extends Phaser.Scene implements Arena {
     for (let i = 0; i < wave.count; i++) {
       const { x, y, delay } = slot(wave.formation, i, wave.count, wave.x);
       if (t !== wave.at + delay) continue;
+      const side = i % 2 === 0 ? 1 : -1;
       this.enemies.push(
-        new ShmupPrefabSprite(
-          this,
-          x,
-          y,
-          wave.kind,
-          ...ENEMY_ARGS[wave.kind],
-          x,
-          i % 2 === 0 ? 1 : -1,
-        ),
+        new ShmupPrefabSprite(this, wave.kind, { x, y, side }),
       );
     }
   }
