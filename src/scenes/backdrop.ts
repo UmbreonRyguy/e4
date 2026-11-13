@@ -1,13 +1,16 @@
 import Phaser from "phaser";
-import { HEIGHT, WIDTH } from "./actors.ts";
+import { HEIGHT, WIDTH } from "../actors.ts";
 
-/** Parallax space shared by every scene, plus the camera's glow treatment. */
+const FADE_RGB = [4, 2, 12] as const;
+const FADE_IN_MS = 400;
+const FADE_OUT_MS = 450;
+
 export class Backdrop {
-  /** Scroll speed multiplier; the cutscene raises it for the warp jump. */
   warp = 1;
   private readonly layers: [Phaser.GameObjects.TileSprite, number][];
+  private leaving = false;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(private readonly scene: Phaser.Scene) {
     const tile = (key: string, speed: number, alpha = 1) =>
       [
         scene.add.tileSprite(0, 0, WIDTH, HEIGHT, key).setOrigin(0).setAlpha(
@@ -29,7 +32,25 @@ export class Backdrop {
     camera.filters.external.addVignette(0.5, 0.5, 0.75, 0.45);
   }
 
-  /** Scrolls by elapsed real time; scenery never affects gameplay. */
+  fadeIn(ms = FADE_IN_MS): void {
+    this.scene.cameras.main.fadeIn(ms, ...FADE_RGB);
+  }
+
+  get fadingOut(): boolean {
+    return this.leaving;
+  }
+
+  fadeTo(key: string, data?: object): void {
+    if (this.leaving) return;
+    this.leaving = true;
+    const camera = this.scene.cameras.main;
+    camera.fadeOut(FADE_OUT_MS, ...FADE_RGB);
+    camera.once(
+      "camerafadeoutcomplete",
+      () => this.scene.scene.start(key, data),
+    );
+  }
+
   scroll(deltaMs: number): void {
     const frames = deltaMs / (1000 / 60);
     for (const [layer, speed] of this.layers) {

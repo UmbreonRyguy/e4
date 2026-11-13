@@ -1,15 +1,12 @@
 import Phaser from "phaser";
 import { HEIGHT, WIDTH } from "./actors.ts";
 import { Hud } from "./hud.ts";
-import { GameScene } from "./game.ts";
+import { BootScene } from "./scenes/boot.ts";
+import { CutsceneScene } from "./scenes/cutscene.ts";
+import { PlayScene } from "./scenes/play.ts";
+import { TitleScene } from "./scenes/title.ts";
 import "./style.css";
 
-/**
- * URL switches for self-play, e.g. ?attract&speed=4&seed=7
- * - attract: skip the title wait and start the self-play demo at once
- * - speed: fixed steps per displayed frame during self-play (1–8)
- * - seed: changes every random decision in the run
- */
 export interface LaunchOptions {
   attract: boolean;
   speed: number;
@@ -32,5 +29,10 @@ new Phaser.Game({
   height: HEIGHT,
   backgroundColor: "#04020c",
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [new GameScene(hud, options)],
+  scene: [
+    new BootScene(),
+    new TitleScene(hud, options),
+    new PlayScene(hud, options),
+    new CutsceneScene(hud),
+  ],
 });
